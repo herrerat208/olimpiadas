@@ -15,6 +15,10 @@ const Clientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [form, setForm] = useState({ nombre: '', apellido: '', telefono: '', email: '', dni: '' });
   const [error, setError] = useState('');
+  const [address, setAddress] = useState('');
+  const [location, setLocation] = useState<{ latitud: number; longitud: number; displayName: string; mapaUrl: string } | null>(null);
+  const [mapError, setMapError] = useState('');
+  const [searching, setSearching] = useState(false);
 
   const cargarClientes = async () => {
     try {
@@ -44,6 +48,22 @@ const Clientes = () => {
   const eliminar = async (id: number) => {
     await api.delete(`/clientes/${id}`);
     cargarClientes();
+  };
+
+  const buscarDireccion = async (e: FormEvent) => {
+    e.preventDefault();
+    setMapError('');
+    setLocation(null);
+    setSearching(true);
+
+    try {
+      const res = await api.get('/geocoding/search', { params: { address } });
+      setLocation(res.data);
+    } catch {
+      setMapError('No se encontró la dirección.');
+    } finally {
+      setSearching(false);
+    }
   };
 
   return (
@@ -88,6 +108,33 @@ const Clientes = () => {
       </form>
 
       {error && <p style={{ color: '#D9552B' }}>{error}</p>}
+
+      <section style={styles.mapPanel}>
+        <p style={styles.sectionLabel}>Integración externa · OpenStreetMap</p>
+        <h2 className="headline" style={styles.sectionTitle}>Ubicar una dirección</h2>
+        <form onSubmit={buscarDireccion} style={styles.mapForm}>
+          <input
+            placeholder="Ej.: Avenida Rivadavia 12000, Morón"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            style={styles.mapInput}
+            required
+          />
+          <button type="submit" style={styles.button} disabled={searching}>
+            {searching ? 'Buscando...' : 'Buscar en el mapa'}
+          </button>
+        </form>
+        {mapError && <p style={{ color: '#D9552B' }}>{mapError}</p>}
+        {location && (
+          <div style={styles.result}>
+            <strong>{location.displayName}</strong>
+            <span>Latitud: {location.latitud} · Longitud: {location.longitud}</span>
+            <a href={location.mapaUrl} target="_blank" rel="noreferrer" style={styles.mapLink}>
+              Abrir en OpenStreetMap
+            </a>
+          </div>
+        )}
+      </section>
 
       <table style={styles.table}>
         <thead>
@@ -146,6 +193,25 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 600,
     cursor: 'pointer',
   },
+  mapPanel: {
+    marginBottom: 24,
+    padding: 16,
+    background: 'var(--panel)',
+    border: '1px solid var(--line)',
+  },
+  sectionLabel: { color: 'var(--steel)', fontSize: 12, margin: 0, fontFamily: 'monospace' },
+  sectionTitle: { fontSize: 20, margin: '5px 0 14px' },
+  mapForm: { display: 'flex', gap: 10, flexWrap: 'wrap' },
+  mapInput: {
+    padding: '8px 10px',
+    background: 'var(--graphite)',
+    border: '1px solid var(--line)',
+    color: 'var(--bone)',
+    fontSize: 14,
+    flex: '1 1 300px',
+  },
+  result: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14, fontSize: 13 },
+  mapLink: { color: 'var(--amber)', width: 'fit-content' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left',

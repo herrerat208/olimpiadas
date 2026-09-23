@@ -193,6 +193,28 @@ Respuesta esperada:
   "db": "connected"
 }
 ```
+ntegr
+### Geocodificación
+
+El backend integra [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) para convertir una dirección en coordenadas. Requiere autenticación JWT:
+
+```http
+GET /geocoding/search?address=Avenida%20Rivadavia%2012000%2C%20Morón
+Authorization: Bearer <token>
+```
+
+Respuesta:
+
+```json
+{
+  "latitud": -34.65,
+  "longitud": -58.62,
+  "displayName": "Morón, Buenos Aires, Argentina",
+  "mapaUrl": "https://www.openstreetmap.org/?mlat=-34.65&mlon=-58.62"
+}
+```
+
+La consulta tiene un timeout de ocho segundos, informa errores del servicio externo y devuelve como máximo un resultado. La integración se utiliza desde la sección de Clientes.
 
 ## Base de datos
 
