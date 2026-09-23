@@ -1,0 +1,24 @@
+:root {
+  --graphite: #1C1F22;
+  --panel: #25292D;
+  --steel: #5B7A8C;
+  --amber: #D9822B;
+  --bone: #E9E6DE;
+  --muted: #8A8F94;
+  --line: #35393E;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--graphite);
+  color: var(--bone);
+  font-family: 'Inter', sans-serif;
+}
+
+.headline {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 29331748
+      POSTGRES_DB: taller_mecanico
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./olimpiadas-backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  backend:
+    build: ./olimpiadas-backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: 29331748
+      DB_NAME: taller_mecanico
+      DB_PORT: 5432
+      JWT_SECRET: una_clave_secreta_larga_y_random
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./olimpiadas-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
