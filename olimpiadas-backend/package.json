@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --runInBand",
+    "build": "tsc --noEmit",
     "dev": "nodemon --exec tsx src/index.ts"
   },
   "keywords": [],
