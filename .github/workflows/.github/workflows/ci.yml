@@ -1,0 +1,71 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taller_mecanico
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./olimpiadas-backend
+
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Crear tablas en la base de datos
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -d taller_mecanico -f schema.sql
+        env:
+          PGPASSWORD: postgres
+
+      - name: Correr tests
+        run: npm test
+        env:
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASS: postgres
+          DB_NAME: taller_mecanico
+          DB_PORT: 5432
+          JWT_SECRET: test_secret_ci
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: backend-test
+
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Build imagen backend
+        run: docker build -t olimpiadas-backend ./olimpiadas-backend
+
+      - name: Build imagen frontend
+        run: docker build -t olimpiadas-frontend ./olimpiadas-frontend
