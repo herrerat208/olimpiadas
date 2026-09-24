@@ -1,24 +1,108 @@
 :root {
-  --graphite: #1C1F22;
-  --panel: #25292D;
-  --steel: #5B7A8C;
-  --amber: #D9822B;
-  --bone: #E9E6DE;
-  --muted: #8A8F94;
-  --line: #35393E;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #edf2f7;
+  background: #11161c;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --graphite: #11161c;
+  --panel: #1a222b;
+  --panel-raised: #202b36;
+  --steel: #91a4b5;
+  --amber: #4f9d69;
+  --amber-strong: #34764d;
+  --bone: #edf2f7;
+  --muted: #9aa9b8;
+  --line: #30404e;
+  --danger: #f07167;
+  --success: #72c995;
 }
 
 * { box-sizing: border-box; }
+
+html { min-width: 320px; }
 
 body {
   margin: 0;
   background: var(--graphite);
   color: var(--bone);
-  font-family: 'Inter', sans-serif;
+  min-width: 320px;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid rgba(79, 157, 105, 0.42);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .headline {
-  font-family: 'Oswald', sans-serif;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
+}
+
+.data-table-wrap {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.data-table-wrap table {
+  min-width: 680px;
+}
+
+.data-table-wrap tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.data-table-wrap tbody tr:hover {
+  background: rgba(145, 164, 181, 0.06);
+}
+
+@media (max-width: 700px) {
+  .nav-shell {
+    gap: 16px !important;
+    padding: 14px 18px !important;
+    flex-wrap: wrap;
+  }
+
+  .nav-shell > div:nth-child(2) {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .nav-shell > div:last-child {
+    margin-left: auto;
+  }
+
+  .nav-shell .user {
+    display: none !important;
+  }
+
+  .login-intro {
+    display: none;
+  }
+
+  .page-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    margin-bottom: 22px !important;
+  }
+
+  .page-header > div:last-child {
+    align-items: flex-start !important;
+  }
+
+  .data-table-wrap table {
+    min-width: 620px;
+  }
 }

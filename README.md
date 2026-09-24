@@ -10,10 +10,12 @@ Permite autenticar usuarios y administrar clientes y vehículos de un taller mec
 - Roles de usuario: `admin`, `mecanico` y `recepcionista`.
 - CRUD protegido de clientes.
 - CRUD protegido de vehículos relacionados con clientes.
+- Integración con OpenStreetMap/Nominatim para geocodificación de direcciones.
+- Integración con WhatsApp (`wa.me`) para notificar clientes.
 - PostgreSQL inicializado mediante `schema.sql`.
 - Tests de backend con Jest y Supertest.
-- Docker Compose para backend, frontend y base de datos.
-- Pipeline de GitHub Actions con tests, type-check, lint, builds y construcción de imágenes Docker.
+- Docker y Docker Compose para backend, frontend y base de datos.
+- Pipeline de CI/CD con GitHub Actions.
 
 Las tablas de órdenes de trabajo, repuestos y turnos ya están definidas en el esquema, pero sus endpoints todavía no están implementados.
 
@@ -24,12 +26,14 @@ flowchart LR
     Browser[ navegador ] --> Frontend[React + Vite]
     Frontend -->|Axios + JWT| Backend[Node.js + Express + TypeScript]
     Backend --> Database[(PostgreSQL)]
+    Backend --> Nominatim[OpenStreetMap Nominatim]
+    Backend --> WhatsApp[WhatsApp - wa.me]
 ```
 
 ### Componentes
 
 - **Frontend:** React, Vite, TypeScript, React Router y Axios.
-- **Backend:** Node.js, Express y TypeScript ejecutado con `tsx`.
+- **Backend:** Node.js, Express y TypeScript, ejecutado con `tsx`.
 - **Base de datos:** PostgreSQL 16.
 - **Autenticación:** JWT (`jsonwebtoken`) y bcrypt.
 - **Testing:** Jest y Supertest.
@@ -53,6 +57,10 @@ flowchart LR
 │   └── Dockerfile
 └── olimpiadas-frontend/
     ├── src/
+    │   ├── api/
+    │   ├── components/
+    │   ├── context/
+    │   └── pages/
     └── Dockerfile
 ```
 
@@ -69,7 +77,7 @@ flowchart LR
 
 ```powershell
 cd olimpiadas-backend
-npm ci
+npm install
 ```
 
 Crear un archivo `.env` dentro de `olimpiadas-backend`:
@@ -77,7 +85,7 @@ Crear un archivo `.env` dentro de `olimpiadas-backend`:
 ```env
 DB_HOST=localhost
 DB_USER=postgres
-DB_PASS=tu contraseña
+DB_PASS=tu_contraseña
 DB_NAME=taller_mecanico
 DB_PORT=5432
 JWT_SECRET=una_clave_secreta_segura
@@ -96,7 +104,7 @@ El backend queda disponible en `http://localhost:3000`.
 
 ```powershell
 cd olimpiadas-frontend
-npm ci
+npm install
 npm run dev
 ```
 
@@ -104,7 +112,7 @@ El frontend queda disponible en `http://localhost:5173`.
 
 ## Ejecución con Docker
 
-Desde la raíz:
+Desde la raíz del proyecto:
 
 ```powershell
 docker compose up --build
@@ -118,6 +126,8 @@ Servicios publicados:
 | Backend | http://localhost:3000 |
 | Healthcheck backend | http://localhost:3000/health |
 | PostgreSQL | localhost:5432 |
+
+Al primer arranque, el contenedor de PostgreSQL ejecuta automáticamente `schema.sql` y crea las tablas.
 
 Para detener los servicios:
 
@@ -133,7 +143,7 @@ docker compose down -v
 
 ## API
 
-Todas las rutas de clientes y vehículos requieren un token JWT en el header:
+Todas las rutas de clientes, vehículos, geocodificación y WhatsApp requieren un token JWT en el header:
 
 ```http
 Authorization: Bearer <token>
@@ -179,24 +189,9 @@ Campos principales: `nombre`, `apellido`, `telefono`, `email` y `dni`.
 
 Campos principales: `patente`, `marca`, `modelo`, `anio` y `cliente_id`.
 
-### Salud del servicio
-
-```http
-GET /health
-```
-
-Respuesta esperada:
-
-```json
-{
-  "status": "ok",
-  "db": "connected"
-}
-```
-ntegr
 ### Geocodificación
 
-El backend integra [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) para convertir una dirección en coordenadas. Requiere autenticación JWT:
+Integra [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) para convertir una dirección en coordenadas.
 
 ```http
 GET /geocoding/search?address=Avenida%20Rivadavia%2012000%2C%20Morón
@@ -214,11 +209,51 @@ Respuesta:
 }
 ```
 
-La consulta tiene un timeout de ocho segundos, informa errores del servicio externo y devuelve como máximo un resultado. La integración se utiliza desde la sección de Clientes.
+La consulta tiene un timeout de ocho segundos, informa errores del servicio externo y devuelve como máximo un resultado. Se utiliza desde la sección de Clientes, con un mapa embebido de OpenStreetMap.
+
+### WhatsApp
+
+Genera un enlace de contacto directo por WhatsApp (`wa.me`) para notificar a un cliente.
+
+```http
+POST /whatsapp/generar-link
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "telefono": "1122334455",
+  "mensaje": "Hola Juan, tu vehículo ya está listo."
+}
+```
+
+Respuesta:
+
+```json
+{
+  "link": "https://wa.me/541122334455?text=Hola%20Juan..."
+}
+```
+
+Se usa desde la sección de Clientes, con el botón "WhatsApp" en cada fila de la tabla.
+
+### Salud del servicio
+
+```http
+GET /health
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "ok",
+  "db": "connected"
+}
+```
 
 ## Base de datos
 
-El esquema contiene las tablas:
+El esquema (`schema.sql`) contiene las siguientes tablas:
 
 ```text
 usuario
@@ -231,43 +266,40 @@ detalle_orden
 turno
 ```
 
-Las tablas de órdenes de trabajo, repuestos y turnos quedan preparadas para una futura ampliación del sistema.
+Las tablas de órdenes de trabajo, repuestos y turnos quedan preparadas para una futura ampliación del sistema, pero todavía no tienen endpoints implementados.
 
-## Tests y validaciones
+## Tests
 
-Backend:
+Backend (Jest + Supertest, requiere PostgreSQL corriendo):
 
 ```powershell
 cd olimpiadas-backend
 npm test
-npm run build
 ```
 
-Frontend:
+Los tests cubren:
+- Registro y login de usuarios.
+- Rechazo de login con credenciales incorrectas.
+- Acceso denegado a rutas protegidas sin token.
+- CRUD de clientes con autenticación.
 
-```powershell
-cd olimpiadas-frontend
-npm run lint
-npm run build
-```
+## CI/CD
 
-El pipeline de [GitHub Actions](./.github/workflows/ci.yml) ejecuta automáticamente:
+El pipeline de [GitHub Actions](./.github/workflows/ci.yml) se ejecuta en cada `push` a `main` y en cada pull request. Pasos:
 
-1. Instalación reproducible con `npm ci`.
-2. Tests y verificación de tipos del backend.
-3. Lint y build del frontend.
-4. Construcción de las imágenes Docker.
+1. Levanta un contenedor temporal de PostgreSQL.
+2. Instala las dependencias del backend.
+3. Crea las tablas ejecutando `schema.sql`.
+4. Corre los tests automatizados.
+5. Si los tests pasan, construye las imágenes Docker de backend y frontend.
 
 ## Seguridad y configuración
 
-- No subir archivos `.env` al repositorio.
+- No subir archivos `.env` al repositorio (ya excluido en `.gitignore`).
 - Usar un `JWT_SECRET` diferente y seguro en cada entorno.
 - No utilizar contraseñas reales en ejemplos o documentación.
 - En producción, configurar credenciales mediante secretos del entorno o del proveedor de despliegue.
 
-## Próximas mejoras
+## Autor
 
-- Integración con un servicio externo, por ejemplo geocodificación con OpenStreetMap/Nominatim.
-- Endpoints para órdenes de trabajo y turnos.
-- Validaciones más completas de entrada.
-- Despliegue en un entorno remoto.
+Proyecto desarrollado por Tomás Herrera, Lara Leguizamón y Demián Iglesias.
